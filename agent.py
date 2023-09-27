@@ -9,6 +9,18 @@ class IndexingAgent(Thread):
     SCOPES = ["https://www.googleapis.com/auth/indexing"]
     ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
 
+    def __debug__message(self, response):
+
+        if "error" in response:
+            code = response["error"]["code"]
+            status = response["error"]["status"]
+            message = response["error"]["message"]
+            logger.error(f"{code}\n{status}\n{message}")
+        else:
+            url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
+            request_result = response["urlNotificationMetadata"]["latestUpdate"]["type"]
+            logger.info(f"{url}:\t{request_result}")
+
     def __init__(self, json_key):
         logger.info("Indexing Agent Initialization")
         super().__init__()
@@ -31,7 +43,7 @@ class IndexingAgent(Thread):
             IndexingAgent.ENDPOINT, method="POST", body=payload
         )
         result = json.loads(content.decode())
-
+        self.__debug__message(result)
         return result
 
     def run(self):

@@ -5,7 +5,7 @@ def main(urls_csv_file, json_keys_folder):
     with open(urls_csv_file, "r") as file:
         urls = file.read().splitlines()
 
-    manager = IndexingManager(urls[:5], json_keys_folder)
+    manager = IndexingManager(urls, json_keys_folder)
     manager.index_urls()
 
 
