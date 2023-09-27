@@ -1,4 +1,4 @@
-from config.logger import logger
+from config.logger import logger, log_func_calls
 from oauth2client.service_account import ServiceAccountCredentials
 import httplib2
 import json
