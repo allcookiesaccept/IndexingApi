@@ -32,11 +32,10 @@ class IndexingManager:
         for agent in self.agents:
             agent.queue = queue
             agent.start()
-        while self.num_of_agents > 0:
-            for url in urls:
-                queue.put(url)
+        for url in urls:
+            queue.put(url)
 
-            queue.join()
+        queue.join()
 
         self.create_final_df()
         logger.info("File created")
