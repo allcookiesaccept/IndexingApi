@@ -9,15 +9,17 @@ class IndexingManager:
     def __init__(self, json_keys_folder, database):
         self.db = database
         self.json_keys_folder = json_keys_folder
-        self.agents = []
         self.__start_agents()
+        self.num_of_agents = len(self.agents)
         self.pushed_urls = []
         logger.info("Indexing Manager Initializated")
 
     def __start_agents(self):
+        self.agents = []
         for file in os.listdir(self.json_keys_folder):
             json_key = os.path.join(self.json_keys_folder, file)
             self.agents.append(IndexingAgent(json_key, self))
+
 
     def add_pushed_url(self, url, response, time):
         self.pushed_urls.append([url, response, time])
@@ -26,14 +28,15 @@ class IndexingManager:
 
         queue = Queue()
 
+
         for agent in self.agents:
             agent.queue = queue
             agent.start()
+        while self.num_of_agents > 0:
+            for url in urls:
+                queue.put(url)
 
-        for url in urls:
-            queue.put(url)
-
-        queue.join()
+            queue.join()
 
         self.create_final_df()
         logger.info("File created")

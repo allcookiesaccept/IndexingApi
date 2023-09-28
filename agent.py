@@ -40,14 +40,14 @@ class IndexingAgent(Thread):
             push_result = self.__parse_response(response)
             now = datetime.datetime.now()
             self.manager.add_pushed_url(url, push_result, now)
-            if "error" in response:
+            if "ERROR" in response:
+                self.manager.num_of_agents -= 1
                 break
-
             self.queue.task_done()
 
     def __parse_response(self, response):
         try:
-            if "error" in response:
+            if "ERROR" in response:
                 code = response["error"]["code"]
                 status = response["error"]["status"]
                 message = response["error"]["message"]
