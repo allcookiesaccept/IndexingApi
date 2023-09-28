@@ -1,4 +1,4 @@
-from config.logger import logger, log_func_calls
+from config.logger import logger
 from oauth2client.service_account import ServiceAccountCredentials
 import httplib2
 import json
@@ -19,16 +19,14 @@ class IndexingAgent(Thread):
         else:
             url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
             request_result = response["urlNotificationMetadata"]["latestUpdate"]["type"]
-            logger.info(f"{url}:\t{request_result}")
+            logger.info(f"{request_result}\t{url}:\n")
 
-    def __init__(self, json_key):
-        logger.info("Indexing Agent Initialization")
+    def __init__(self, json_key, manager):
         super().__init__()
-        # self.db = database
         self.http = self.get_credentials(json_key)
         self.queue = None
-        self.pushed_urls = []
-        self.get_limit = False
+        self.manager = manager
+        logger.info("Agent Initializated")
 
     def get_credentials(self, json_key):
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
@@ -36,10 +34,10 @@ class IndexingAgent(Thread):
         )
         return credentials.authorize(httplib2.Http())
 
-    def index_single_url(self, http, url):
+    def index_single_url(self, url):
         content = {"url": url.strip(), "type": "URL_UPDATED"}
         payload = json.dumps(content)
-        response, content = http.request(
+        response, content = self.http.request(
             IndexingAgent.ENDPOINT, method="POST", body=payload
         )
         result = json.loads(content.decode())
@@ -48,15 +46,15 @@ class IndexingAgent(Thread):
 
     def run(self):
 
-        logger.info("Indexing Agent Run")
-        while True:
-            url = self.queue.get()
-            response = self.index_single_url(self.http, url)
+        logger.info("Agent Run")
+        for url in iter(self.queue.get, None):
+
+            response = self.index_single_url(url)
 
             if "error" in response:
                 self.queue.put(url)
                 break
             else:
-                self.pushed_urls.append([url, response])
-
+                self.manager.add_pushed_url(url, response)
             self.queue.task_done()
+

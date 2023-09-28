@@ -2,27 +2,27 @@ from config.logger import logger
 import os
 from queue import Queue
 from agent import IndexingAgent
-# from database.postgres import Postgres
 import pandas as pd
 import datetime
 
 class IndexingManager:
-    def __init__(self, urls, json_keys_folder):
-        logger.info("Indexing Manager Initialization")
-        self.urls = urls
+    def __init__(self, json_keys_folder):
         self.json_keys_folder = json_keys_folder
         self.agents = []
-        # self.database = Postgres()
-        # self.database()
         self.__start_agents()
         self.pushed_urls = []
+        logger.info("Indexing Manager Initializated")
+
 
     def __start_agents(self):
         for file in os.listdir(self.json_keys_folder):
             json_key = os.path.join(self.json_keys_folder, file)
-            self.agents.append(IndexingAgent(json_key))
+            self.agents.append(IndexingAgent(json_key, self))
 
-    def index_urls(self):
+    def add_pushed_url(self, url, response):
+        self.pushed_urls.append([url, response])
+
+    def index_urls(self, urls):
 
         queue = Queue()
 
@@ -30,7 +30,7 @@ class IndexingManager:
             agent.queue = queue
             agent.start()
 
-        for url in self.urls:
+        for url in urls:
             queue.put(url)
 
         queue.join()
@@ -39,13 +39,15 @@ class IndexingManager:
         logger.info("File created")
 
     def create_final_df(self):
+
+        filename = self.__generate_filename()
+        columns = ['url', 'status']
+        df = pd.DataFrame(self.pushed_urls, columns=columns)
+        df.to_excel(filename)
+
+    def __generate_filename(self) -> str:
+
         now = datetime.datetime.now()
         date_string = now.strftime("%Y-%m-%d")
         time_string = now.strftime("%H-%M-%S")
-        columns = ['url', 'status']
-
-        for agent in self.agents:
-            self.pushed_urls += agent.pushed_urls
-
-        df = pd.DataFrame(self.pushed_urls, columns=columns)
-        df.to_excel(f'result/index_api_result_{date_string}_{time_string}.xlsx')
+        return f'result/index_api_result_{date_string}_{time_string}.xlsx'

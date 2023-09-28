@@ -1,16 +1,17 @@
 from manager import IndexingManager
 
 
-def main(urls_csv_file, json_keys_folder):
-    with open(urls_csv_file, "r") as file:
-        urls = file.read().splitlines()
+def main(urls, json_keys_folder):
 
-    manager = IndexingManager(urls, json_keys_folder)
-    manager.index_urls()
+    manager = IndexingManager(json_keys_folder)
+    manager.index_urls(urls)
 
 
 if __name__ == "__main__":
-    urls_csv_file = "urls.csv"
+
+    with open("urls.csv", "r") as file:
+        urls = file.read().splitlines()
+
     json_keys_folder = "json_keys"
 
-    main(urls_csv_file, json_keys_folder)
+    main(urls[:3], json_keys_folder)
