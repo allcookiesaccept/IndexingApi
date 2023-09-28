@@ -3,23 +3,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 import httplib2
 import json
 from threading import Thread
-
+import datetime
 
 class IndexingAgent(Thread):
     SCOPES = ["https://www.googleapis.com/auth/indexing"]
     ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
 
-    def __debug__message(self, response):
-
-        if "error" in response:
-            code = response["error"]["code"]
-            status = response["error"]["status"]
-            message = response["error"]["message"]
-            logger.error(f"{code}\n{status}\n{message}")
-        else:
-            url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
-            request_result = response["urlNotificationMetadata"]["latestUpdate"]["type"]
-            print(f"{request_result}:\t{url}")
 
     def __init__(self, json_key, manager):
         super().__init__()
@@ -40,9 +29,7 @@ class IndexingAgent(Thread):
         response, content = self.http.request(
             IndexingAgent.ENDPOINT, method="POST", body=payload
         )
-        result = json.loads(content.decode())
-        self.__debug__message(result)
-        return result
+        return json.loads(content.decode())
 
     def run(self):
 
@@ -50,11 +37,26 @@ class IndexingAgent(Thread):
         for url in iter(self.queue.get, None):
 
             response = self.index_single_url(url)
-
+            push_result = self.__parse_response(response)
+            now = datetime.datetime.now()
+            self.manager.add_pushed_url(url, push_result, now)
             if "error" in response:
-                self.queue.put(url)
                 break
-            else:
-                self.manager.add_pushed_url(url, response)
+
             self.queue.task_done()
 
+    def __parse_response(self, response):
+        try:
+            if "error" in response:
+                code = response["error"]["code"]
+                status = response["error"]["status"]
+                message = response["error"]["message"]
+                logger.error(f"{code}:\t{status}:\t{message}")
+                return f"{code}:\t{status}"
+            else:
+                url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
+                request_result = response["urlNotificationMetadata"]["latestUpdate"]["type"]
+                print(f"{request_result}:\t{url}")
+                return request_result
+        except Exception as e:
+            logger.error(e)

@@ -14,14 +14,13 @@ class IndexingManager:
         self.pushed_urls = []
         logger.info("Indexing Manager Initializated")
 
-
     def __start_agents(self):
         for file in os.listdir(self.json_keys_folder):
             json_key = os.path.join(self.json_keys_folder, file)
             self.agents.append(IndexingAgent(json_key, self))
 
-    def add_pushed_url(self, url, response):
-        self.pushed_urls.append([url, response])
+    def add_pushed_url(self, url, response, time):
+        self.pushed_urls.append([url, response, time])
 
     def index_urls(self, urls):
 
@@ -38,17 +37,27 @@ class IndexingManager:
 
         self.create_final_df()
         logger.info("File created")
+        self.send_results_to_database()
+        logger.info("Database updated")
+
+
+    def send_results_to_database(self):
+        for item in self.pushed_urls:
+            url = item[0]
+            status = item[1]
+            datetime = item[2]
+            query = "INSERT INTO indexing_table (url, status, datetime) VALUES (%s, %s, %s)"
+            values = (url, status, datetime)
+            self.db.execute_query(query, values)
 
     def create_final_df(self):
 
         filename = self.__generate_filename()
-        columns = ['url', 'status']
+        columns = ['url', 'status', 'time']
         df = pd.DataFrame(self.pushed_urls, columns=columns)
         df.to_excel(filename)
 
     def __generate_filename(self) -> str:
-
         now = datetime.datetime.now()
-        date_string = now.strftime("%Y-%m-%d")
-        time_string = now.strftime("%H-%M-%S")
-        return f'result/index_api_result_{date_string}_{time_string}.xlsx'
+        formatted_time = now.strftime("%Y-%m-%dT%H-%M-%S")
+        return f'result/index_api_result_{formatted_time}.xlsx'
