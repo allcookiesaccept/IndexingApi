@@ -19,14 +19,14 @@ class IndexingAgent(Thread):
         else:
             url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
             request_result = response["urlNotificationMetadata"]["latestUpdate"]["type"]
-            logger.info(f"{request_result}\t{url}:\n")
+            print(f"{request_result}:\t{url}")
 
     def __init__(self, json_key, manager):
         super().__init__()
         self.http = self.get_credentials(json_key)
         self.queue = None
         self.manager = manager
-        logger.info("Agent Initializated")
+        print("Agent Initializated")
 
     def get_credentials(self, json_key):
         credentials = ServiceAccountCredentials.from_json_keyfile_name(
@@ -46,7 +46,7 @@ class IndexingAgent(Thread):
 
     def run(self):
 
-        logger.info("Agent Run")
+        print("Agent Run")
         for url in iter(self.queue.get, None):
 
             response = self.index_single_url(url)

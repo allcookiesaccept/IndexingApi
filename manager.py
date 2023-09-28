@@ -6,7 +6,8 @@ import pandas as pd
 import datetime
 
 class IndexingManager:
-    def __init__(self, json_keys_folder):
+    def __init__(self, json_keys_folder, database):
+        self.db = database
         self.json_keys_folder = json_keys_folder
         self.agents = []
         self.__start_agents()

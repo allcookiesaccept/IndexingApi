@@ -1,4 +1,4 @@
-from .models import Postgres
+from config.models import Postgres
 from dotenv import load_dotenv
 import os
 

@@ -36,7 +36,7 @@ class Postgres:
                 password=self.password,
             )
         except Exception as e:
-            print(str(e))
+            logger.error(f"{e}")
 
     def execute_query(self, query, values=None):
         try:
@@ -45,4 +45,4 @@ class Postgres:
             self.connection.commit()
             cursor.close()
         except Exception as e:
-            print(f"{e}")
+            logger.error(f"{e}")
