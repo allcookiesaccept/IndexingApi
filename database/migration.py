@@ -1,10 +1,8 @@
-import datetime
 from config.logger import logger
 
 class MigrationManager:
     def __init__(self, database):
         self.database = database
-
     def create_indexing_table(self):
         try:
             cursor = self.database.connection.cursor()

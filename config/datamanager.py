@@ -2,7 +2,6 @@ from config.models import Postgres
 from dotenv import load_dotenv
 import os
 
-
 class DataManager:
 
     instance = None

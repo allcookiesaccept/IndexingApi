@@ -4,12 +4,14 @@ from config.logger import logger
 
 database = Postgres()
 
-class IndexingAPI:
 
+class IndexingAPI:
     KEYS_FOLDER = "json_keys"
-    def __init__(self, db = database):
+
+    def __init__(self, db=database):
         self.database = db
         self.database()
+
         logger.info(f"{type(self)} Initializated")
 
     def __call__(self, urls):
@@ -18,9 +20,8 @@ class IndexingAPI:
 
 
 if __name__ == "__main__":
-
     with open("urls.csv", "r") as file:
         urls = file.read().splitlines()
 
     api = IndexingAPI()
-    api(urls[:2])
+    api(urls[:7])
