@@ -5,10 +5,10 @@ import json
 from threading import Thread
 import datetime
 
+
 class IndexingAgent(Thread):
     SCOPES = ["https://www.googleapis.com/auth/indexing"]
     ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
-
 
     def __init__(self, json_key, manager):
         super().__init__()
@@ -32,18 +32,19 @@ class IndexingAgent(Thread):
         return json.loads(content.decode())
 
     def run(self):
-
-        print("Agent Run")
+        logger.info(f"Agent {type(self)} running")
         for url in iter(self.queue.get, None):
-
             response = self.index_single_url(url)
             push_result = self.__parse_response(response)
             now = datetime.datetime.now()
             self.manager.add_pushed_url(url, push_result, now)
             if "ERROR" in response:
-                self.manager.num_of_agents -= 1
+                self.queue.put(url)
                 break
-            self.queue.task_done()
+            else:
+                self.queue.task_done()
+        self.manager.agent_done()
+        logger.info(f"Agent {type(self)} stopped")
 
     def __parse_response(self, response):
         try:
@@ -55,7 +56,9 @@ class IndexingAgent(Thread):
                 return f"{code}:\t{status}"
             else:
                 url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
-                request_result = response["urlNotificationMetadata"]["latestUpdate"]["type"]
+                request_result = response["urlNotificationMetadata"]["latestUpdate"][
+                    "type"
+                ]
                 print(f"{request_result}:\t{url}")
                 return request_result
         except Exception as e:
