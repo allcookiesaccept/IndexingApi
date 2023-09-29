@@ -1,6 +1,7 @@
 from config.logger import logger
 import os
 from queue import Queue
+from threading import Lock
 from agent import IndexingAgent
 import pandas as pd
 import datetime
@@ -12,6 +13,8 @@ class IndexingManager:
         self.__start_agents()
         self.num_of_agents = len(self.agents)
         self.pushed_urls = []
+        self.done_agents = 0
+        self.lock = Lock()
         logger.info("Indexing Manager Initializated")
 
     def __start_agents(self):
@@ -24,25 +27,30 @@ class IndexingManager:
     def add_pushed_url(self, url, response, time):
         self.pushed_urls.append([url, response, time])
 
-    def index_urls(self, urls):
+    def agent_done(self):
+        with self.lock:
+            self.done_agents += 1
+            if self.done_agents == len(self.agents):
+                self.all_agents_done()  # Вызываем функцию, когда все агенты закончили работу
 
-        queue = Queue()
-
-
-        for agent in self.agents:
-            agent.queue = queue
-            agent.start()
-        for url in urls:
-            queue.put(url)
-
-        queue.join()
-
+    def all_agents_done(self):
         self.create_final_df()
         logger.info("File created")
         self.send_results_to_database()
         logger.info("Database updated")
 
-
+    def index_urls(self, urls):
+        queue = Queue()
+        for agent in self.agents:
+            agent.queue = queue
+            agent.start()
+        for url in urls:
+            queue.put(url)
+        queue.join()
+        self.create_final_df()
+        logger.info("File created")
+        self.send_results_to_database()
+        logger.info("Database updated")
     def send_results_to_database(self):
         for item in self.pushed_urls:
             url = item[0]
