@@ -15,14 +15,13 @@ class IndexingManager:
         self.pushed_urls = []
         self.done_agents = 0
         self.lock = Lock()
-        logger.info("Indexing Manager Initializated")
+        logger.info(f"{type(self)} Initializated")
 
     def __start_agents(self):
         self.agents = []
         for file in os.listdir(self.json_keys_folder):
             json_key = os.path.join(self.json_keys_folder, file)
             self.agents.append(IndexingAgent(json_key, self))
-
 
     def add_pushed_url(self, url, response, time):
         self.pushed_urls.append([url, response, time])
@@ -31,13 +30,11 @@ class IndexingManager:
         with self.lock:
             self.done_agents += 1
             if self.done_agents == len(self.agents):
-                self.all_agents_done()  # Вызываем функцию, когда все агенты закончили работу
+                self.all_agents_done()
 
     def all_agents_done(self):
         self.create_final_df()
-        logger.info("File created")
         self.send_results_to_database()
-        logger.info("Database updated")
 
     def index_urls(self, urls):
         queue = Queue()
@@ -48,24 +45,27 @@ class IndexingManager:
             queue.put(url)
         queue.join()
         self.create_final_df()
-        logger.info("File created")
         self.send_results_to_database()
-        logger.info("Database updated")
+
     def send_results_to_database(self):
-        for item in self.pushed_urls:
-            url = item[0]
-            status = item[1]
-            datetime = item[2]
-            query = "INSERT INTO indexing_table (url, status, datetime) VALUES (%s, %s, %s)"
-            values = (url, status, datetime)
-            self.db.execute_query(query, values)
+        try:
+            for item in self.pushed_urls:
+                url = item[0]
+                status = item[1]
+                datetime = item[2]
+                query = "INSERT INTO indexing_table (url, status, datetime) VALUES (%s, %s, %s)"
+                values = (url, status, datetime)
+                self.db.execute_query(query, values)
+            logger.info("Database updated")
+        except Exception as e:
+            logger.error(f"Error happened: {e}")
 
     def create_final_df(self):
-
         filename = self.__generate_filename()
         columns = ['url', 'status', 'time']
         df = pd.DataFrame(self.pushed_urls, columns=columns)
         df.to_excel(filename)
+        logger.info(f"Created {filename}")
 
     def __generate_filename(self) -> str:
         now = datetime.datetime.now()

@@ -4,14 +4,13 @@ from config.logger import logger
 from database.migration import MigrationManager
 class Postgres:
     def __init__(self):
-        logger.info("Postgres Class Initialization")
         data_manager: DataManager = DataManager.get_instance()
         self.host = data_manager.postgres.host
         self.port = data_manager.postgres.port
         self.database = data_manager.postgres.database
         self.user = data_manager.postgres.user
         self.password = data_manager.postgres.password
-
+        logger.info(f"{type(self)} Initializated")
 
     def __call__(self):
         try:

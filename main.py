@@ -1,14 +1,20 @@
 from manager import IndexingManager
 from database.postgres import Postgres
+from config.logger import logger
 
 database = Postgres()
-database()
-database.do_migration()
 
-def main(urls, json_keys_folder):
+class IndexingAPI:
 
-    manager = IndexingManager(json_keys_folder, database)
-    manager.index_urls(urls)
+    KEYS_FOLDER = "json_keys"
+    def __init__(self, db = database):
+        self.database = db
+        self.database()
+        logger.info(f"{type(self)} Initializated")
+
+    def __call__(self, urls):
+        manager = IndexingManager(IndexingAPI.KEYS_FOLDER, database)
+        manager.index_urls(urls)
 
 
 if __name__ == "__main__":
@@ -16,5 +22,5 @@ if __name__ == "__main__":
     with open("urls.csv", "r") as file:
         urls = file.read().splitlines()
 
-    json_keys_folder = "json_keys"
-    main(urls[:3], json_keys_folder)
+    api = IndexingAPI()
+    api(urls[:3])
