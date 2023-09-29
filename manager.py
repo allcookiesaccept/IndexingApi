@@ -29,6 +29,7 @@ class IndexingManager:
     def agent_done(self):
         with self.lock:
             self.done_agents += 1
+            logger.info(f"class IndexingAgent stopped")
             if self.done_agents == len(self.agents):
                 self.all_agents_done()
 

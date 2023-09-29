@@ -34,25 +34,24 @@ class IndexingAgent(Thread):
         logger.info(f"{type(self)} running")
         for url in iter(self.queue.get, None):
             response = self.index_single_url(url)
-            push_result = self.__parse_response(response)
+            push_result = self.__parse_response(response, url)
             now = datetime.datetime.now()
             self.manager.add_pushed_url(url, push_result, now)
-            if "ERROR" in response:
+            if "error" in response:
                 self.queue.put(url)
                 break
             else:
                 self.queue.task_done()
         self.manager.agent_done()
-        logger.info(f"{type(self)} stopped")
 
-    def __parse_response(self, response):
+    def __parse_response(self, response, url):
         try:
-            if "ERROR" in response:
+            if "error" in response:
                 code = response["error"]["code"]
                 status = response["error"]["status"]
-                message = response["error"]["message"]
-                logger.info(f"{code}:\t{status}:\t{message}")
-                return f"{code}:\t{status}"
+                logger.info(f"{code}:\t{status}:\t{url}")
+                request_result = f"{code}:\t{status}"
+                return request_result
             else:
                 url = response["urlNotificationMetadata"]["latestUpdate"]["url"]
                 request_result = response["urlNotificationMetadata"]["latestUpdate"][

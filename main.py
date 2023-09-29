@@ -23,4 +23,4 @@ if __name__ == "__main__":
         urls = file.read().splitlines()
 
     api = IndexingAPI()
-    api(urls[:3])
+    api(urls[:2])
