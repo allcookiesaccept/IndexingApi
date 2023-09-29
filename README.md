@@ -9,4 +9,4 @@ The file should contain a line-by-line list of URLs without headers or other dat
 For simple database recording in the project, a connection to PostgreSQL is set up.
 All you need to do is create the database in advance and provide the connection values in the `.env` file.
 
-For saving the results in an Excel fileyou need to create a folder named "result" in the project's root directory.
+For saving the results in an Excel file you need to create a folder named "result" in the project's root directory.
