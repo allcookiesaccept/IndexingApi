@@ -66,7 +66,6 @@ class IndexingAgent(Thread):
         logger.info(f"{type(self)} running")
         for url in iter(self.queue.get, None):
             validation_result = self.validate_url(url)
-            print(validation_result)
             if validation_result == 'send to index':
                 try:
                     response = self.index_single_url(url)
