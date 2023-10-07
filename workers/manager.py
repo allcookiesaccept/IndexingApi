@@ -2,20 +2,27 @@ from config.logger import logger
 import os
 from queue import Queue
 from threading import Lock
-from agent import IndexingAgent
+from workers.agent import IndexingAgent
 import pandas as pd
 import datetime
 
 class IndexingManager:
+
+    SCOPES = ["https://www.googleapis.com/auth/indexing"]
+    ENDPOINT = "https://indexing.googleapis.com/v3/urlNotifications:publish"
+
     def __init__(self, json_keys_folder, database):
-        self.db = database
+        self.database: database.postgres.Postgres = database
         self.json_keys_folder = json_keys_folder
-        self.__start_agents()
-        self.num_of_agents = len(self.agents)
         self.pushed_urls = []
         self.done_agents = 0
         self.lock = Lock()
         logger.info(f"{type(self)} Initializated")
+
+
+    def __call__(self):
+        self.__start_agents()
+        self.num_of_agents = len(self.agents)
 
     def __start_agents(self):
         self.agents = []
@@ -49,26 +56,32 @@ class IndexingManager:
         self.send_results_to_database()
 
     def send_results_to_database(self):
-        try:
+
             for item in self.pushed_urls:
-                url = item[0]
-                status = item[1]
-                datetime = item[2]
-                query = "INSERT INTO indexing_table (url, status, datetime) VALUES (%s, %s, %s)"
-                values = (url, status, datetime)
-                self.db.execute_query(query, values)
+                url, status, datetime = item
+                if status != 'URL_UPDATED':
+                    continue
+                else:
+                    try:
+                        query = "INSERT INTO api_call_results (url, status, datetime) VALUES (%s, %s, %s)"
+                        values = (url, status, datetime)
+                        self.database.execute_query(query, values)
+                    except Exception as e:
+                        logger.error(f"Error happened: {e}")
+
             logger.info("Database updated")
-        except Exception as e:
-            logger.error(f"Error happened: {e}")
 
     def create_final_df(self):
         filename = self.__generate_filename()
-        columns = ['url', 'status', 'time']
+        columns = ['url', 'status', 'datetime']
         df = pd.DataFrame(self.pushed_urls, columns=columns)
         df.to_excel(filename)
         logger.info(f"Created {filename}")
 
-    def __generate_filename(self) -> str:
+    def get_time(self):
         now = datetime.datetime.now()
-        formatted_time = now.strftime("%Y-%m-%dT%H-%M-%S")
+        return now
+
+    def __generate_filename(self) -> str:
+        formatted_time = self.get_time().strftime("%Y-%m-%dT%H-%M-%S")
         return f'result/index_api_result_{formatted_time}.xlsx'

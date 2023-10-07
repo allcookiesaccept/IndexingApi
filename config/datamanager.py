@@ -5,7 +5,6 @@ import os
 class DataManager:
 
     instance = None
-
     @staticmethod
     def get_instance():
         if DataManager.instance is None:
