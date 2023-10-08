@@ -12,7 +12,7 @@ class IndexingAPI:
         self.database()
         logger.info(f"{type(self)} Initializated")
 
-    def __load_urls(self, filename = 'urls.csv'):
+    def __load_urls(self, filename='urls.csv'):
 
         with open(filename, "r") as file:
             self.urls = file.read().splitlines()
@@ -37,12 +37,12 @@ class IndexingAPI:
 
         return unprocessed_urls
 
-    def __call__(self, urls):
+    def __call__(self):
+        self.__load_urls()
         self.manager = IndexingManager(IndexingAPI.KEYS_FOLDER, self.database)
         self.manager()
-        self.manager.index_urls(self.urls)
+        self.manager.index_urls(self.urls[:1])
 
 if __name__ == "__main__":
-
     api = IndexingAPI()
     api()

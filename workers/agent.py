@@ -11,7 +11,6 @@ class IndexingAgent(Thread):
     def __init__(self, json_key, manager):
         super().__init__()
         self.manager: workers.manager.IndexingManager = manager
-
         self.http = self.get_credentials(json_key)
         self.queue = None
         logger.info(f"{type(self)} Initializated")
