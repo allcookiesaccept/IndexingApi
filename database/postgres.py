@@ -1,16 +1,17 @@
 import psycopg2
+
 from config.datamanager import DataManager
 from config.logger import logger
-from database.migration import MigrationManager
+
+
 class Postgres:
     def __init__(self):
         data_manager: DataManager = DataManager.get_instance()
-        self.host = data_manager.postgres.host
-        self.port = data_manager.postgres.port
-        self.database = data_manager.postgres.database
-        self.user = data_manager.postgres.user
-        self.password = data_manager.postgres.password
-        logger.info(f"{type(self)} Initializated")
+        self.host = data_manager.instance.postgres.host
+        self.port = data_manager.instance.postgres.port
+        self.database = data_manager.instance.postgres.database
+        self.user = data_manager.instance.postgres.user
+        self.password = data_manager.instance.postgres.password
 
     def __call__(self):
         try:
@@ -21,20 +22,18 @@ class Postgres:
                 user=self.user,
                 password=self.password,
             )
-            logger.info(f"Connected to the {self.database} database")
-
+            logger.info(f'connection established')
         except Exception as e:
-            logger.error("Error connecting to the PostgreSQL database:\n", str(e))
-
-    def do_migration(self):
-        migration = MigrationManager(self)
-        migration.create_indexing_table()
+            logger.error(f"Error during connection\n:{e}")
 
     def execute_query(self, query, values=None):
+        send_line = f"{query}|{values}"
+        logger.info(f'executing send_line: {send_line})')
         try:
             cursor = self.connection.cursor()
-            cursor.execute(query, values)
+            result = cursor.execute(query, values)
             self.connection.commit()
             cursor.close()
+            return result
         except Exception as e:
-            logger.error(f"{e}")
+            logger.error(f"Error during execution query\n:{e}")
