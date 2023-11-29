@@ -1,6 +1,5 @@
 import psycopg2
-
-from config.datamanager import DataManager
+from config.data_manager import DataManager
 from config.logger import logger
 
 
