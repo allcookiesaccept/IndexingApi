@@ -6,8 +6,8 @@ import json
 from threading import Thread
 import datetime
 
-class IndexingAgent(Thread):
 
+class IndexingAgent(Thread):
     def __init__(self, json_key, manager):
         super().__init__()
         self.manager: workers.manager.IndexingManager = manager
@@ -29,9 +29,7 @@ class IndexingAgent(Thread):
         )
         return json.loads(content.decode())
 
-
     def get_url_info_from_database(self, url):
-
         try:
             query = f"SELECT status, datetime FROM api_call_results WHERE url = '{url}' ORDER BY id DESC"
             cursor = self.manager.database.connection.cursor()
@@ -47,29 +45,34 @@ class IndexingAgent(Thread):
         except Exception as e:
             logger.error(f"Error occurs during request for url info: {e}")
 
-
     def validate_url(self, url):
-
         url_status, url_last_update = self.get_url_info_from_database(url)
-        if url_status == 'URL_UPDATED':
-            url_last_update = url_last_update.split(' ')[0]
-            date1 = datetime.datetime.strptime(self.manager.get_time().strftime("%Y-%m-%d"), "%Y-%m-%d")
+        if url_status == "URL_UPDATED":
+            url_last_update = url_last_update.split(" ")[0]
+            date1 = datetime.datetime.strptime(
+                self.manager.get_time().strftime("%Y-%m-%d"), "%Y-%m-%d"
+            )
             date2 = datetime.datetime.strptime(url_last_update, "%Y-%m-%d")
             url_days_passed = (date1 - date2).days
             if url_days_passed <= 14:
-                return f'The address was successfully sent less than two weeks ago'
+                return f"The address was successfully sent less than two weeks ago"
         else:
-            return 'send to index'
+            return "send to index"
 
     def run(self):
         logger.info(f"{type(self)} running")
         for url in iter(self.queue.get, None):
             validation_result = self.validate_url(url)
-            if validation_result == 'send to index':
+            if validation_result == "send to index":
                 try:
                     response = self.index_single_url(url)
                     push_result = self.__parse_response(response, url)
-                    self.manager.add_pushed_url(url, push_result, self.manager.get_time())
+                    self.manager.add_pushed_url(
+                        url, push_result, self.manager.get_time()
+                    )
+                    self.manager.send_url_result_to_database(
+                        url, push_result, self.manager.get_time()
+                    )
                     if "error" in response:
                         self.queue.put(url)
                         break
@@ -78,12 +81,17 @@ class IndexingAgent(Thread):
                 except Exception as e:
                     logger.error(e)
             else:
-                self.manager.add_pushed_url(url, validation_result, self.manager.get_time())
+                self.manager.add_pushed_url(
+                    url, validation_result, self.manager.get_time()
+                )
+                self.manager.send_url_result_to_database(
+                    url, validation_result, self.manager.get_time()
+                )
                 self.queue.task_done()
+
         self.manager.agent_done()
 
     def __parse_response(self, response, url):
-
         try:
             if "error" in response:
                 code = response["error"]["code"]
