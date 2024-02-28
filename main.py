@@ -41,7 +41,7 @@ class IndexingAPI:
         self.__load_urls()
         self.manager = IndexingManager(IndexingAPI.KEYS_FOLDER, self.database)
         self.manager()
-        self.manager.index_urls(self.urls[:1])
+        self.manager.index_urls(self.urls)
 
 if __name__ == "__main__":
     api = IndexingAPI()
