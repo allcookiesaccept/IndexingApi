@@ -1,38 +1,39 @@
 import psycopg2
-from config.data_manager import DataManager
 from config.logger import logger
-
 
 class Postgres:
     def __init__(self):
-        data_manager: DataManager = DataManager.get_instance()
-        self.host = data_manager.instance.postgres.host
-        self.port = data_manager.instance.postgres.port
-        self.database = data_manager.instance.postgres.database
-        self.user = data_manager.instance.postgres.user
-        self.password = data_manager.instance.postgres.password
+        data_manager = DataManager.get_instance()
+        self.host = data_manager.postgres.host
+        self.port = data_manager.postgres.port
+        self.database = data_manager.postgres.database
+        self.user = data_manager.postgres.user
+        self.password = data_manager.postgres.password
+        self.connection = None
 
-    def __call__(self):
-        try:
-            self.connection = psycopg2.connect(
-                host=self.host,
-                port=self.port,
-                database=self.database,
-                user=self.user,
-                password=self.password,
-            )
-            logger.info(f'connection established')
-        except Exception as e:
-            logger.error(f"Error during connection\n:{e}")
+    def __enter__(self):
+        self.connection = psycopg2.connect(
+            host=self.host,
+            port=self.port,
+            dbname=self.database,
+            user=self.user,
+            password=self.password
+        )
+        logger.info("Connected to PostgreSQL")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.connection:
+            self.connection.close()
+            logger.info("PostgreSQL connection closed")
 
     def execute_query(self, query, values=None):
-        send_line = f"{query}|{values}"
-        logger.info(f'executing send_line: {send_line})')
         try:
-            cursor = self.connection.cursor()
-            result = cursor.execute(query, values)
-            self.connection.commit()
-            cursor.close()
-            return result
+            with self.connection.cursor() as cursor:  # Автоматическое закрытие курсора
+                cursor.execute(query, values or ())
+                self.connection.commit()
+                return cursor.fetchall() if cursor.description else None
         except Exception as e:
-            logger.error(f"Error during execution query\n:{e}")
+            logger.error(f"Query execution failed: {e}")
+            self.connection.rollback()
+            raise

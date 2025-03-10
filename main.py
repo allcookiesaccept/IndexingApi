@@ -1,48 +1,50 @@
 from workers.manager import IndexingManager
 from database.postgres import Postgres
 from config.logger import logger
-
-
+import os
+import sys
 
 class IndexingAPI:
-    KEYS_FOLDER = "json_keys"
+    KEYS_FOLDER = os.path.abspath("json_keys")
 
     def __init__(self):
         self.database = Postgres()
-        self.database()
-        logger.info(f"{type(self)} Initializated")
+        self.manager = None
+        self.urls = []
 
-    def __load_urls(self, filename='urls.csv'):
+    def load_urls(self, filename='urls.csv'):
+        try:
+            with open(filename, 'r') as f:
+                self.urls = [line.strip() for line in f]
+        except FileNotFoundError:
+            logger.error(f"URL file '{filename}' not found")
+            sys.exit(1)
 
-        with open(filename, "r") as file:
-            self.urls = file.read().splitlines()
-            file.close()
+    def save_unprocessed(self):
+        if not self.urls:
+            return
 
-    def __save_unprocessed_urls(self, ):
-
-        unprocessed_urls = self.__collect_unprocessed_urls()
-        with open(f"unprocessed_urls_{self.manager.get_time().strftime('%Y-%m-%dT%H-%M-%S')}.csv", "w") as file:
-            for line in unprocessed_urls:
-                file.write(f"{line}\n")
-            file.close()
-
-    def __collect_unprocessed_urls(self):
-
-        unprocessed_urls = []
-
+        unprocessed = []
         for url in self.urls:
-            url_updated = any(item['url'] == url and item["status"]== 'URL_UPDATED' for item in self.manager.pushed_urls)
-            if not url_updated:
-                    unprocessed_urls.append(url)
+            if not any(
+                item[0] == url and item[1] == 'URL_UPDATED'
+                for item in self.manager.pushed_urls
+            ):
+                unprocessed.append(url)
 
-        return unprocessed_urls
+        if unprocessed:
+            filename = f"unprocessed_{datetime.datetime.now():%Y-%m-%d_%H-%M-%S}.csv"
+            with open(filename, 'w') as f:
+                f.write("\n".join(unprocessed))
+            logger.info(f"Unprocessed URLs saved to {filename}")
 
-    def __call__(self):
-        self.__load_urls()
-        self.manager = IndexingManager(IndexingAPI.KEYS_FOLDER, self.database)
-        self.manager()
+    def run(self):
+        self.load_urls()
+        self.manager = IndexingManager(self.KEYS_FOLDER, self.database)
+        self.manager.start_agents()
         self.manager.index_urls(self.urls)
+        self.save_unprocessed()
 
 if __name__ == "__main__":
     api = IndexingAPI()
-    api()
+    api.run()
